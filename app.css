@@ -1,0 +1,265 @@
+:root{
+    /* 暗いステージ前提：背景は真っ黒寄り、文字は白寄り、色は蛍光気味に振ってコントラストを稼ぐ */
+    --bg:#0A0908; --bg2:#14110D; --panel:#1C1812; --panel2:#272017;
+    --line:#3B3327; --line2:#584B3B;
+    --ink:#FFF7E8; --muted:#BDB09C; --faint:#857A6A;
+    --home:#4FE0C4;  /* 目標(ホーム)テンポ = ティール */
+    --live:#FFB13D;  /* タップで握っている時 = アンバー */
+    --bad:#FF6B5E;
+    --r:16px;
+    --mono:ui-monospace,"SF Mono","JetBrains Mono","Cascadia Code",Menlo,Consolas,monospace;
+    --sans:"Inter",system-ui,-apple-system,"Hiragino Kaku Gothic ProN","Noto Sans JP","Helvetica Neue",sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    background:
+      radial-gradient(1200px 600px at 50% -10%, #1E1810 0%, transparent 60%),
+      var(--bg);
+    color:var(--ink); font-family:var(--sans);
+    min-height:100dvh; -webkit-text-size-adjust:100%;
+    padding:max(14px,env(safe-area-inset-top)) max(14px,env(safe-area-inset-right)) max(20px,env(safe-area-inset-bottom)) max(14px,env(safe-area-inset-left));
+    -webkit-tap-highlight-color:transparent;
+  }
+  .wrap{max-width:560px;margin:0 auto}
+
+  /* header */
+  .head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:4px 4px 14px}
+  .brand{display:flex;align-items:baseline;gap:9px}
+  .logo{font-weight:800;letter-spacing:.14em;font-size:14px;color:var(--ink)}
+  .logo b{color:var(--live)}
+  .mark{font:700 12px/1 var(--sans);letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-left:auto}
+  .mark.on{color:var(--home)}
+
+  /* main display card */
+  .stage{
+    position:relative;background:linear-gradient(180deg,var(--panel) 0%,var(--bg2) 100%);
+    border:1px solid var(--line);border-radius:24px;padding:20px 18px 18px;
+    box-shadow:0 18px 40px -22px #000, inset 0 1px 0 #ffffff0a;
+    overflow:hidden;
+    display:flex;flex-direction:column;
+  }
+  .eyebrow{display:flex;justify-content:space-between;align-items:center;font-size:13px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+  .tempoName{color:var(--home);font-weight:700;transition:color .25s}
+  .barCount{font-family:var(--mono);font-size:14px;color:var(--ink);font-variant-numeric:tabular-nums}
+  .stageExit{display:none}
+
+  /* beat ring (拍ドット。タップでアクセント編集) */
+  .ring{display:flex;justify-content:center;align-items:center;gap:12px;flex-wrap:wrap;min-height:30px;margin:12px 0 6px}
+  .dot{width:18px;height:18px;border-radius:50%;background:#0000;border:2.5px solid var(--line2);cursor:pointer;flex:0 0 auto;
+       transition:transform .05s ease, background .05s, box-shadow .12s, border-color .12s, width .12s, height .12s, opacity .12s}
+  .dot.lv0{opacity:.30;border-style:dashed;border-color:var(--faint)}
+  .dot.lv1{border-color:var(--line2)}
+  .dot.lv2{width:23px;height:23px;border-color:var(--muted)}
+  .dot.lv3{width:28px;height:28px;border-color:var(--ink)}
+  .dot.on{transform:scale(1.3)}
+
+  /* big number */
+  .bpmBlock{text-align:center;margin:6px 0 2px;user-select:none}
+  .bpm{font-family:var(--mono);font-weight:700;font-size:clamp(84px,22vw,120px);line-height:.92;letter-spacing:-.03em;font-variant-numeric:tabular-nums;transition:color .2s}
+  .bpm small{font-size:16px;letter-spacing:.18em;color:var(--muted);font-family:var(--sans);font-weight:700}
+  .target{font-family:var(--mono);font-size:15px;color:var(--muted);min-height:20px;letter-spacing:.02em;margin-top:6px}
+  .target b{color:var(--home);font-weight:700}
+  .target.hold{color:var(--live)}
+
+  /* home-return meter */
+  .meter{margin:14px 8px 4px;position:relative}
+  .track{height:10px;border-radius:6px;background:#0000;border:1px solid var(--line2);position:relative;overflow:visible}
+  .home{position:absolute;left:50%;top:-6px;bottom:-6px;width:3px;background:var(--home);transform:translateX(-50%);border-radius:2px;box-shadow:0 0 10px #4fe0c488}
+  .homeCap{position:absolute;left:50%;top:-18px;transform:translateX(-50%);font-size:10px;font-weight:700;letter-spacing:.12em;color:var(--home);text-transform:uppercase}
+  .live{position:absolute;top:50%;width:18px;height:18px;border-radius:50%;background:var(--live);transform:translate(-50%,-50%);box-shadow:0 0 12px #ffb13d99;transition:left .12s linear, background .2s, opacity .2s; opacity:.0}
+  .meterEnds{display:flex;justify-content:space-between;font-size:10px;color:var(--faint);margin-top:8px;letter-spacing:.06em}
+
+  /* transport + steer */
+  .transport{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:18px}
+  .startBtn,.returnBtn{
+    appearance:none;border:1px solid var(--line2);border-radius:var(--r);cursor:pointer;
+    background:linear-gradient(180deg,var(--panel2),#1a150f);color:var(--ink);
+    font:800 17px/1 var(--sans);letter-spacing:.06em;min-height:60px;padding:12px 14px;
+    display:flex;align-items:center;justify-content:center;gap:10px;
+    transition:transform .06s, border-color .15s, background .2s, box-shadow .2s, color .2s;
+    touch-action:manipulation;user-select:none;
+  }
+  .startBtn:active,.returnBtn:active{transform:translateY(1px)}
+  .startBtn .ic{width:16px;height:16px;display:inline-block}
+  .startBtn.playing{background:linear-gradient(180deg,#3a2a16,#2a1f12);border-color:#8a6530;color:#ffd9a0}
+  .returnBtn{border-color:#2f6a5e;color:var(--home)}
+  .returnBtn .ic{width:18px;height:18px;display:inline-block}
+  .returnBtn:disabled{opacity:.35;cursor:default}
+  /* 握ったまま(保持中)＝押してほしい状態なので脈打たせる */
+  .returnBtn.armed{border-color:var(--home);box-shadow:0 0 0 1px var(--home), 0 0 26px -6px #4fe0c4aa;animation:armPulse 1.2s ease-in-out infinite}
+  @keyframes armPulse{0%,100%{box-shadow:0 0 0 1px var(--home),0 0 18px -6px #4fe0c488}50%{box-shadow:0 0 0 2px var(--home),0 0 34px -4px #4fe0c4cc}}
+
+  .steer{
+    grid-column:1/-1;
+    position:relative;appearance:none;cursor:pointer;border-radius:20px;padding:22px 16px;min-height:150px;
+    background:radial-gradient(120% 140% at 50% 0%, #332918 0%, #1f180f 70%);
+    border:2px solid var(--line2);color:var(--ink);text-align:center;overflow:hidden;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    transition:transform .05s, box-shadow .12s, border-color .15s;
+    touch-action:manipulation;user-select:none;
+  }
+  .steer:active{transform:translateY(1px)}
+  .steer.hit{border-color:var(--live);box-shadow:0 0 0 2px var(--live), 0 0 40px -6px #ffb13daa}
+  .steer .lbl{font-weight:800;letter-spacing:.06em;font-size:19px}
+  .steer .sub{font-size:12.5px;color:var(--muted);margin-top:6px;line-height:1.5}
+  .steer .tapbpm{font-family:var(--mono);font-size:15px;font-weight:700;color:var(--live);margin-top:8px;min-height:18px;letter-spacing:.02em}
+
+  /* controls */
+  .controls{margin-top:14px;display:grid;gap:10px}
+  .card{background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);padding:14px 15px}
+  .card h3{margin:0 0 12px;font:700 12px/1 var(--sans);letter-spacing:.16em;text-transform:uppercase;color:var(--muted);display:flex;justify-content:space-between;align-items:center}
+  .card h3 .val{font-family:var(--mono);color:var(--ink);letter-spacing:.02em;font-size:13px}
+  .card.hot{border-color:#6a4d26}
+  .card.hot h3{color:var(--live)}
+
+  .row{display:flex;align-items:center;gap:10px}
+  .stepper{display:flex;align-items:center;gap:8px}
+  .rbtn{appearance:none;border:1px solid var(--line2);background:var(--panel);color:var(--ink);width:46px;height:46px;border-radius:12px;font-size:22px;cursor:pointer;display:grid;place-items:center;transition:background .12s,transform .06s;touch-action:manipulation}
+  .rbtn:active{transform:translateY(1px)}
+  .rbtn.sm{width:38px;height:38px;font-size:17px}
+  input[type=number]{width:92px;background:var(--panel);border:1px solid var(--line2);color:var(--ink);border-radius:10px;padding:10px;font-family:var(--mono);font-size:20px;text-align:center;font-variant-numeric:tabular-nums}
+  input[type=text]{background:var(--panel);border:1px solid var(--line2);color:var(--ink);border-radius:10px;padding:10px;font-size:14px;font-family:var(--sans)}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:8px;border-radius:6px;background:var(--line2);outline:none;margin:8px 0}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:28px;height:28px;border-radius:50%;background:var(--ink);border:3px solid var(--bg2);box-shadow:0 1px 4px #0008;cursor:pointer}
+  input[type=range]::-moz-range-thumb{width:28px;height:28px;border-radius:50%;background:var(--ink);border:3px solid var(--bg2);cursor:pointer}
+
+  .chips{display:flex;flex-wrap:wrap;gap:8px}
+  .chip{appearance:none;border:1px solid var(--line2);background:var(--panel);color:var(--muted);border-radius:11px;padding:10px 13px;font-size:13.5px;cursor:pointer;font-weight:700;letter-spacing:.01em;transition:all .12s;font-family:var(--sans);min-height:42px;touch-action:manipulation}
+  .chip.on{background:var(--ink);color:#1a1610;border-color:var(--ink)}
+  .chip.minor{font-family:var(--mono)}
+
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  @media(max-width:430px){.grid2{grid-template-columns:1fr}}
+
+  .toggle{display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px;color:var(--muted)}
+  .sw{width:50px;height:30px;border-radius:20px;background:var(--line);position:relative;transition:background .15s;flex:0 0 auto}
+  .sw::after{content:"";position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:var(--ink);transition:left .15s}
+  .toggle.on .sw{background:var(--home)}
+  .toggle.on .sw::after{left:23px}
+
+  .legend{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;font-size:12px;color:var(--muted);margin:14px 2px 2px}
+  .legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:middle}
+  .help{font-size:12px;color:var(--faint);text-align:center;margin-top:14px;line-height:1.8}
+  kbd{font-family:var(--mono);background:var(--panel);border:1px solid var(--line2);border-bottom-width:2px;border-radius:6px;padding:1px 6px;font-size:11px;color:var(--ink)}
+  .hint{font-size:12px;color:var(--faint);margin-top:8px;line-height:1.6}
+  .accentHint{font-size:11px;color:var(--faint);text-align:center;margin-top:6px;letter-spacing:.02em}
+
+  /* setlist */
+  .setlist{display:flex;flex-direction:column;gap:6px;margin:2px 0 4px}
+  .song{display:flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--line2);border-radius:11px;padding:10px 12px;min-height:46px}
+  .song.cur{border-color:var(--home);box-shadow:inset 0 0 0 1px var(--home)}
+  .song .nm{flex:1;min-width:0;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer}
+  .song .meta{font-family:var(--mono);font-size:12px;color:var(--muted);flex:0 0 auto}
+  .song .mv{appearance:none;border:none;background:none;color:var(--muted);font-size:16px;line-height:1;cursor:pointer;padding:6px 8px}
+  .song .mv:active{transform:translateY(1px)}
+  .song .del{color:var(--bad)}
+  .iconbtn{appearance:none;border:1px solid var(--line2);background:var(--panel);color:var(--ink);border-radius:11px;padding:10px 13px;font-size:13px;cursor:pointer;font-weight:700;font-family:var(--sans);min-height:42px;touch-action:manipulation}
+  .iconbtn:active{transform:translateY(1px)}
+  .iconbtn.pri{background:var(--ink);color:#1a1610;border-color:var(--ink)}
+  .emptyNote{font-size:12.5px;color:var(--faint);text-align:center;padding:10px 4px}
+  .navrow{display:flex;align-items:center;gap:8px;margin-top:8px}
+  .navrow .pos{font-family:var(--mono);font-size:13px;color:var(--muted);margin-left:auto}
+  textarea.io{width:100%;height:70px;background:var(--panel);border:1px solid var(--line2);color:var(--ink);border-radius:10px;padding:8px;font-family:var(--mono);font-size:11px;margin-top:8px;display:none}
+
+  /* midi */
+  .midiStatus{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
+  .midiStatus i{width:10px;height:10px;border-radius:50%;background:var(--faint);flex:0 0 auto}
+  .midiStatus.on i{background:var(--home);box-shadow:0 0 8px var(--home)}
+  .midiStatus.err i{background:var(--bad)}
+  .devlist{font-size:12px;color:var(--muted);margin-top:8px;line-height:1.6;font-family:var(--mono)}
+
+  /* sections */
+  .secList{display:flex;flex-direction:column;gap:6px;margin:6px 0 4px}
+  .sec{display:flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--line2);border-radius:11px;padding:10px 12px;min-height:46px}
+  .sec.cur{border-color:var(--live);box-shadow:inset 0 0 0 1px var(--live)}
+  .sec .nm{flex:1;min-width:0;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer}
+  .sec .meta{font-family:var(--mono);font-size:12px;color:var(--muted);flex:0 0 auto}
+  .sec .mv{appearance:none;border:none;background:none;color:var(--muted);font-size:16px;line-height:1;cursor:pointer;padding:6px 8px}
+  .secNow{display:flex;align-items:center;gap:8px;justify-content:center;font-size:14px;color:var(--muted);margin-top:8px;flex-wrap:wrap}
+  /* drag handle (⋮⋮) + drag states */
+  .grip{width:24px;height:34px;flex:0 0 auto;display:grid;place-items:center;border-radius:8px;color:var(--faint);cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;margin-left:-4px;transition:color .12s,background .12s}
+  .grip svg{width:10px;height:16px;fill:currentColor}
+  .grip:hover{color:var(--muted);background:#ffffff0a}
+  .grip:active{cursor:grabbing;color:var(--live)}
+  .dragSrc{opacity:.28}
+  .dragSrc > .song, .sec.dragSrc{border-style:dashed}
+  .dragGhost{position:fixed;z-index:100;pointer-events:none;margin:0;background:var(--panel2);
+    box-shadow:0 22px 44px -12px #000, 0 0 0 1.5px var(--live);transform:scale(1.02);opacity:.96}
+  .dragGhost .grip{color:var(--live)}
+  body.dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
+  /* nested sections under the current song */
+  .songBlk{display:flex;flex-direction:column;gap:6px}
+  .songBlk.cur{background:#4fe0c40d;border-radius:14px;padding:4px}
+  .secs{display:flex;flex-direction:column;gap:6px;margin:0 0 2px 18px;padding-left:10px;border-left:2px solid var(--line2)}
+  .secAddBtn{align-self:flex-start;border-style:dashed;color:var(--muted)}
+  /* inline editor (song name / section) — opens right under the row being edited */
+  .edit{background:var(--panel2);border:1px solid var(--live);border-radius:12px;padding:10px 12px;display:grid;gap:8px;box-shadow:0 0 0 1px #ffb13d33}
+  .edit .fld{display:flex;flex-direction:column;gap:4px;font-size:11px;color:var(--muted);letter-spacing:.06em;min-width:0}
+  .edit .fld.grow{flex:1}
+  .edit input[type=number]{width:84px;font-size:17px;padding:8px}
+  select{appearance:none;-webkit-appearance:none;background:var(--panel2);border:1px solid var(--line2);color:var(--ink);border-radius:10px;padding:9px 30px 9px 10px;font-size:14px;font-family:var(--sans);font-weight:700;min-height:42px;
+    background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);
+    background-position:calc(100% - 16px) 50%,calc(100% - 11px) 50%;background-size:5px 5px;background-repeat:no-repeat}
+  .secNow b{color:var(--live);font-family:var(--mono)}
+
+  /* foot flash */
+  .footBadge{position:fixed;left:0;right:0;bottom:0;pointer-events:none;height:6px;background:var(--live);opacity:0;transition:opacity .08s;z-index:50}
+  .footBadge.hit{opacity:1}
+
+  /* ===== iPad横など広い画面：左に大表示、右に設定 ===== */
+  @media (min-width:900px) and (orientation:landscape){
+    .wrap{max-width:1400px;display:grid;grid-template-columns:minmax(460px,11fr) minmax(360px,9fr);gap:18px;align-items:start}
+    .head{grid-column:1/-1;padding-bottom:8px}
+    .stage{position:sticky;top:max(14px,env(safe-area-inset-top))}
+    .controls{margin-top:0;max-height:calc(100dvh - 90px);overflow-y:auto;padding-right:2px;-webkit-overflow-scrolling:touch}
+    .legend,.help{grid-column:1/-1}
+    .bpm{font-size:clamp(110px,18vh,150px)}
+    .transport .steer{min-height:clamp(160px,26vh,240px)}
+    .steer .lbl{font-size:22px}
+  }
+
+  /* ===== ステージモード：全画面・BPMとパッドだけ特大 ===== */
+  body.stage{padding:0;overflow:hidden}
+  body.stage .wrap{display:block;max-width:none}
+  body.stage .head, body.stage .controls, body.stage .legend, body.stage .help{display:none}
+  body.stage .stage{
+    position:fixed;inset:0;border:none;border-radius:0;box-shadow:none;
+    background:var(--bg);
+    padding:max(16px,env(safe-area-inset-top)) max(20px,env(safe-area-inset-right)) max(16px,env(safe-area-inset-bottom)) max(20px,env(safe-area-inset-left));
+    display:grid;grid-template-rows:auto auto 1fr auto auto;
+  }
+  body.stage .eyebrow{font-size:clamp(16px,2.4vh,24px);padding-right:150px} /* 右上の「設定に戻る」と被らないように */
+  body.stage .barCount{font-size:clamp(18px,3vh,30px)}
+  body.stage .secNow{font-size:clamp(16px,2.6vh,26px);margin-top:4px}
+  body.stage .stageExit{display:inline-flex;position:absolute;top:max(10px,env(safe-area-inset-top));right:max(14px,env(safe-area-inset-right));z-index:2;opacity:.7}
+  body.stage .stageExit:active{opacity:1}
+  body.stage .ring{gap:clamp(14px,2.4vw,28px);margin:12px 0 0}
+  body.stage .dot{width:clamp(22px,3.6vh,34px);height:clamp(22px,3.6vh,34px);border-width:3px}
+  body.stage .dot.lv2{width:clamp(28px,4.4vh,42px);height:clamp(28px,4.4vh,42px)}
+  body.stage .dot.lv3{width:clamp(34px,5.2vh,50px);height:clamp(34px,5.2vh,50px)}
+  body.stage .bpmBlock{display:flex;flex-direction:column;justify-content:center;align-items:center;min-height:0}
+  body.stage .bpm{font-size:clamp(150px,40vh,420px);line-height:.9}
+  body.stage .bpm small{font-size:clamp(16px,2.6vh,28px)}
+  body.stage .target{font-size:clamp(16px,2.8vh,26px)}
+  body.stage .meter{margin:10px 8% 8px}
+  body.stage .track{height:14px}
+  body.stage .live{width:26px;height:26px}
+  body.stage .homeCap{font-size:12px;top:-22px}
+  body.stage .meterEnds{font-size:12px}
+  body.stage .transport{grid-template-columns:1fr 1fr 2.2fr;gap:14px;margin-top:10px;min-height:clamp(120px,24vh,220px)}
+  body.stage .transport .steer{grid-column:auto;min-height:0}
+  body.stage .startBtn,body.stage .returnBtn{font-size:clamp(18px,2.8vh,26px);min-height:0}
+  body.stage .steer .lbl{font-size:clamp(20px,3.2vh,30px)}
+  body.stage .steer .sub{display:none}
+  body.stage .steer .tapbpm{font-size:clamp(16px,2.8vh,26px)}
+  /* 縦画面のステージモードはパッドを下に広げる */
+  @media (orientation:portrait){
+    body.stage .transport{grid-template-columns:1fr 1fr;min-height:clamp(180px,30vh,320px)}
+    body.stage .transport .steer{grid-column:1/-1}
+    body.stage .bpm{font-size:clamp(120px,36vw,300px)}
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{transition:none!important;animation:none!important}
+  }

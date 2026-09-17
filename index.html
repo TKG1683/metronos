@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Metronos — 叩いて先導、自然に戻るメトロノーム</title>
+<meta name="theme-color" content="#0A0908">
+<meta name="description" content="叩いてテンポを先導し、やめると設定テンポへ自然に戻るバンド向けメトロノーム">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Metronos">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<div class="wrap">
+
+  <div class="head">
+    <div class="brand">
+      <span class="logo">METRO<b>·</b>NOS</span>
+    </div>
+    <span class="mark" id="statusMark">停止中</span>
+    <button class="iconbtn" id="stageBtn">ステージ表示</button>
+  </div>
+
+  <!-- ===== MAIN DISPLAY ===== -->
+  <div class="stage">
+    <button class="iconbtn stageExit" id="stageExit">✕ 設定に戻る</button>
+    <div class="eyebrow">
+      <span class="tempoName" id="tempoName">Allegro</span>
+      <span class="barCount" id="barCount"></span>
+      <span id="sigLabel">4 / 4</span>
+    </div>
+    <div class="secNow" id="secNowTop" style="margin:0 0 4px"></div>
+
+    <div class="ring" id="ring"></div>
+
+    <div class="bpmBlock" id="bpmBlock">
+      <div class="bpm" id="bpmNow">120<small> BPM</small></div>
+      <div class="target" id="targetLine">&nbsp;</div>
+    </div>
+
+    <!-- home-return meter -->
+    <div class="meter">
+      <div class="track">
+        <div class="home"></div>
+        <span class="homeCap">ホーム</span>
+        <div class="live" id="liveMark"></div>
+      </div>
+      <div class="meterEnds"><span id="mLow">遅い</span><span id="mHigh">速い</span></div>
+    </div>
+
+    <div class="transport">
+      <button class="startBtn" id="startBtn">
+        <span class="ic" id="startIc"></span><span id="startTxt">スタート</span>
+      </button>
+      <button class="returnBtn" id="returnBtn" title="ホームへ戻る（R）">
+        <span class="ic"><svg viewBox="0 0 18 18" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l6-6 6 6"/><path d="M5 8v7h8V8"/></svg></span><span id="returnTxt">ホームへ戻る</span>
+      </button>
+
+      <button class="steer" id="steerPad">
+        <div class="lbl" id="steerLbl">タップでテンポ設定</div>
+        <div class="sub" id="steerSub">演奏前にビートを叩くとBPMが決まります</div>
+        <div class="tapbpm" id="tapBpm">&nbsp;</div>
+      </button>
+    </div>
+  </div>
+
+  <!-- ===== CONTROLS ===== -->
+  <div class="controls">
+
+    <!-- tempo -->
+    <div class="card">
+      <h3>目標テンポ（ホーム）<span class="val" id="tVal">120 BPM</span></h3>
+      <div class="row" style="margin-bottom:12px">
+        <div class="stepper">
+          <button class="rbtn" id="bpmDown">−</button>
+          <input type="number" id="bpmInput" min="20" max="300" value="120" inputmode="numeric">
+          <button class="rbtn" id="bpmUp">＋</button>
+        </div>
+        <div class="chips" style="margin-left:auto">
+          <button class="chip minor" data-bpm="-5">-5</button>
+          <button class="chip minor" data-bpm="5">+5</button>
+        </div>
+      </div>
+      <input type="range" id="bpmSlider" min="20" max="300" value="120">
+    </div>
+
+    <!-- time signature -->
+    <div class="card">
+      <h3>拍子 <span class="val" id="sigVal">4/4</span></h3>
+      <div class="chips" id="sigChips" style="margin-bottom:11px"></div>
+      <div class="row">
+        <span style="font-size:12px;color:var(--muted)">拍数</span>
+        <div class="stepper" style="margin-left:6px">
+          <button class="rbtn sm" id="beatsDown">−</button>
+          <span id="beatsView" style="font-family:var(--mono);min-width:24px;text-align:center;font-size:16px">4</span>
+          <button class="rbtn sm" id="beatsUp">＋</button>
+        </div>
+        <button class="iconbtn" id="accentReset" style="margin-left:auto">アクセント初期化</button>
+      </div>
+      <div class="accentHint">上の拍ドットをタップ＝アクセント編集（無音 → 通常 → ● → ◎ の順で切替）</div>
+    </div>
+
+    <!-- rhythm / subdivision -->
+    <div class="card">
+      <h3>リズム（細分化）<span class="val" id="subVal">4分</span></h3>
+      <div class="chips" id="subChips"></div>
+    </div>
+
+    <div class="grid2">
+      <!-- sound -->
+      <div class="card">
+        <h3>音色</h3>
+        <div class="chips" id="soundChips"></div>
+      </div>
+      <!-- volume -->
+      <div class="card">
+        <h3>音量 <span class="val" id="volVal">80</span></h3>
+        <input type="range" id="volSlider" min="0" max="100" value="80">
+        <div class="hint">スタート前にスマホの音量も確認してね。</div>
+      </div>
+    </div>
+
+    <!-- recovery -->
+    <div class="card hot">
+      <h3>ホームへの復帰 <span class="val" id="recVal">1拍あたり 10%</span></h3>
+      <input type="range" id="recSlider" min="2" max="30" value="10">
+      <div class="meterEnds" style="margin-top:8px"><span>ゆっくり（2%）</span><span>速い（30%）</span></div>
+      <label class="toggle" id="autoReturnToggle" style="margin-top:12px">
+        <span class="sw"></span><span>叩くのをやめたら自動で戻る <kbd>A</kbd></span>
+      </label>
+      <div class="hint">
+        <b style="color:var(--live)">ステアパッド</b>を叩くと、その瞬間のタップ間隔でテンポを“握り”ます（停止中なら叩いた瞬間に再生開始）。
+        いまの拍の間隔から目標BPM（<b style="color:var(--home)">ホーム</b>）の間隔へ、<b>1拍ごとに上の％ずつ</b>縮めて穏やかに戻ります。<br>
+        自動復帰OFFのときは、叩いたテンポを握ったまま維持し、<b style="color:var(--home)">ホームへ戻る</b>ボタン（<kbd>R</kbd>）で復帰を開始します。復帰中にもう一度押すと即座にホームへ。
+      </div>
+    </div>
+
+    <!-- setlist (songs with nested sections) -->
+    <div class="card hot">
+      <h3>セットリスト <span class="val" id="slCount">0曲</span></h3>
+      <div class="setlist" id="setlist"></div>
+      <div class="row" style="gap:8px;margin-top:10px">
+        <input type="text" id="songName" placeholder="新しい曲名" style="flex:1;min-width:0">
+        <button class="iconbtn pri" id="songAdd">＋曲を追加</button>
+      </div>
+      <div class="navrow">
+        <button class="iconbtn" id="secPrev">◀ 前</button>
+        <button class="iconbtn" id="secNext">次 ▶</button>
+        <span class="pos" id="songPos" style="margin-left:0">—</span>
+        <label class="toggle" id="secAutoToggle" style="margin-left:auto">
+          <span class="sw"></span><span style="font-size:12px;color:var(--muted)">小節数で自動送り</span>
+        </label>
+      </div>
+      <div class="hint">左の ⋮⋮ をドラッグで並べ替え。曲名をタップで切替、曲の下にぶら下がるのが<b style="color:var(--live)">セクション</b>（曲中テンポチェンジ）。行の <b>✎</b> で編集フォームが開き、<b>保存</b>で反映。「＋曲を追加」は今の画面の設定を1セクション目にして曲を作ります。</div>
+      <h3 style="margin-top:16px">プロジェクト <span class="val" style="color:var(--faint);font-size:10px">ファイル保存 / 読み込み</span></h3>
+      <div class="row" style="gap:8px;flex-wrap:wrap">
+        <input type="text" id="projName" placeholder="プロジェクト名（ファイル名になります）" style="flex:1;min-width:160px">
+        <button class="iconbtn pri" id="projSave">ファイルに保存</button>
+        <button class="iconbtn" id="projLoad">ファイルを開く</button>
+        <input type="file" id="projFile" accept=".json,application/json" hidden>
+      </div>
+      <div class="row" style="gap:8px;margin-top:8px">
+        <button class="iconbtn" id="ioToggle">テキストでコピー/貼り付け</button>
+      </div>
+      <textarea class="io" id="ioBox" spellcheck="false" placeholder="ここにJSONを貼って『読み込み』"></textarea>
+      <div class="row" id="ioBtns" style="gap:8px;margin-top:8px;display:none">
+        <button class="iconbtn" id="ioExport">JSONを書き出す</button>
+        <button class="iconbtn" id="ioImport">JSONを読み込む</button>
+      </div>
+      <div class="hint" id="slPersistNote"></div>
+    </div>
+
+    <!-- midi -->
+    <div class="card">
+      <h3>MIDI入力 <span class="val" style="color:var(--faint);font-size:10px">ドラムパッドで叩く</span></h3>
+      <div class="row" style="gap:8px">
+        <button class="iconbtn pri" id="midiEnable">MIDIを有効化</button>
+        <div class="midiStatus" id="midiStatus" style="margin-left:auto"><i></i><span id="midiStatusText">未接続</span></div>
+      </div>
+      <div class="devlist" id="midiDevices"></div>
+      <div class="row" style="gap:8px;margin-top:10px">
+        <button class="iconbtn" id="midiLearn">ノート指定（学習）</button>
+        <button class="iconbtn" id="midiAny">全ノートで叩く</button>
+      </div>
+      <div class="hint" id="midiHint">有効化すると、パッドのノートONが画面タップと同じ「叩く＝スタート/ステア」になります。特定パッドだけにしたいときは「ノート指定」で次に叩いたノートを学習。</div>
+    </div>
+  </div>
+
+  <div class="legend">
+    <span><i style="background:var(--home)"></i>ホーム＝設定BPM</span>
+    <span><i style="background:var(--live)"></i>ステア中＝タップ追従</span>
+  </div>
+
+  <div class="help">
+    <kbd>T</kbd> ステア ・ <kbd>Space</kbd> 開始/停止 ・ <kbd>N</kbd> 次 ・ <kbd>P</kbd> 前 ・ <kbd>R</kbd> ホームへ戻る（2度押しで即復帰） ・ <kbd>A</kbd> 自動復帰 ON/OFF ・ <kbd>S</kbd> ステージ表示<br>
+    <span id="useCase">AirStep LiteのHIDキーに必要なものを割り当てれば、足元だけで操作できます。</span>
+  </div>
+
+</div>
+
+<div class="footBadge" id="footBadge"></div>
+<script src="app.js"></script>
+</body>
+</html>
