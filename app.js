@@ -369,6 +369,7 @@
     {id:'next',  l:'次のセクション / 曲',         def:{key:'n',code:'KeyN'}},
     {id:'prev',  l:'前のセクション / 曲',         def:{key:'p',code:'KeyP'}},
     {id:'home',  l:'ホームへ戻る',                def:{key:'r',code:'KeyR'}},
+    {id:'jump',  l:'即ホーム（復帰を待たない）',  def:{key:'h',code:'KeyH'}},   // AirStep 等は長押しを送れないので単押しでも用意
     {id:'auto',  l:'自動復帰 ON/OFF',             def:{key:'a',code:'KeyA'}},
     {id:'stage', l:'ステージ表示',                def:{key:'s',code:'KeyS'}},
   ];
@@ -383,6 +384,7 @@
     else if(id==='next'){footFlash();nextSection();}
     else if(id==='prev'){footFlash();prevSection();}
     else if(id==='home'){homePressStart();}              // 解放時に短押し(トグル)/長押し(即復帰)を判定。keyup 側で homePressEnd()
+    else if(id==='jump'){footFlash();jumpHome();}
     else if(id==='auto'){footFlash();toggleAutoReturn();}
     else if(id==='stage'){toggleStage();}
   }
