@@ -53,7 +53,7 @@
     </div>
 
     <div class="transport">
-      <button class="startBtn" id="startBtn">
+      <button class="startBtn" id="startBtn" title="スタート / ストップ（Space）／長押しでホームに戻して停止">
         <span class="ic" id="startIc"></span><span id="startTxt">スタート</span>
       </button>
       <button class="returnBtn" id="returnBtn" title="ホームへ戻る（R）／長押しまたは H で即ホーム">
@@ -139,6 +139,7 @@
       <div class="hint">
         <b style="color:var(--live)">タップテンポパッド</b>を叩くと、その瞬間のタップ間隔でテンポを“握り”ます（停止中は叩いた間隔の平均でテンポを測定し、スタートでそのテンポから再生開始）。
         いまの拍の間隔から目標BPM（<b style="color:var(--home)">ホーム</b>）の間隔へ、<b>1拍ごとに上の％ずつ</b>縮めて穏やかに戻ります。<br>
+        <b>ストップは一時停止</b>：テンポがホームから離れたまま止めても値を残し、再開で同じテンポから続きます。ホームに戻して止めるには<b>スタートボタン長押し</b>（<kbd>Space</kbd> 長押し／<kbd>X</kbd>）。<br>
         自動復帰OFF（初期値）のときは、叩いたテンポを握ったまま維持し、<b style="color:var(--home)">ホームへ戻る</b>ボタン（<kbd>R</kbd>）で復帰を開始します。復帰中に押すと一時停止（今のテンポで保持）。<b>長押し</b>（0.6秒）または <kbd>H</kbd> で即座にホームへ。
       </div>
     </div>
