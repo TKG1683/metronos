@@ -83,7 +83,7 @@
   .startBtn:active,.returnBtn:active{transform:translateY(1px)}
   .startBtn .ic{width:16px;height:16px;display:inline-block}
   .startBtn.playing{background:linear-gradient(180deg,#3a2a16,#2a1f12);border-color:#8a6530;color:#ffd9a0}
-  .returnBtn{border-color:#2f6a5e;color:var(--home)}
+  .returnBtn{border-color:#2f6a5e;color:var(--home);-webkit-touch-callout:none}  /* 長押し判定があるので iOS のコールアウト抑止 */
   .returnBtn .ic{width:18px;height:18px;display:inline-block}
   .returnBtn:disabled{opacity:.35;cursor:default}
   /* 握ったまま(保持中)＝押してほしい状態なので脈打たせる */
@@ -162,6 +162,11 @@
   .navrow .pos{font-family:var(--mono);font-size:13px;color:var(--muted);margin-left:auto}
   textarea.io{width:100%;height:70px;background:var(--panel);border:1px solid var(--line2);color:var(--ink);border-radius:10px;padding:8px;font-family:var(--mono);font-size:11px;margin-top:8px;display:none}
 
+  /* key bindings */
+  .keymap{display:flex;flex-direction:column;gap:6px}
+  .keyrow{display:flex;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--line2);border-radius:11px;padding:8px 12px;min-height:46px}
+  .keyrow .nm{flex:1;font-size:13.5px}
+  .keyrow kbd{font-size:13px;padding:4px 10px;min-width:56px;text-align:center}
   /* midi */
   .midiStatus{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
   .midiStatus i{width:10px;height:10px;border-radius:50%;background:var(--faint);flex:0 0 auto}
