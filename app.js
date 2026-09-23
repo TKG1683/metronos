@@ -14,7 +14,7 @@
   let volume=0.8;
   let soundType='beep';
   let recPct=0.10;           // 1拍ごとに「現在の間隔」を目標との差の何割ぶん戻すか（間隔=秒の空間で補間）
-  let autoReturn=true;       // true: 叩くのをやめたら自動で復帰 / false: 握ったまま保持し「ホームへ戻る」で復帰開始
+  let autoReturn=false;      // true: 叩くのをやめたら自動で復帰 / false: 握ったまま保持し「ホームへ戻る」で復帰開始（初期値。保存済み設定があればそちら）
   let holding=false;         // 保持中（復帰を止めている）。autoReturn=false でタップすると立つ
   let tapSound=false;        // true: 停止中の測定タップでもクリック音を鳴らす（メトロノームは始めない）
   let steerTaps=[];          // ステアのテンポ算出（直近数タップの移動平均）
@@ -185,11 +185,12 @@
   // ---- transport ----
   function start(){
     ensureCtx();
+    // 停止中に測定したテンポがあればそこから発車（ステアと同じく、自動復帰ONなら目標へ帰る）。
+    // 測定がなければ、一時停止していたテンポ・保持状態のまま再開（ホームにいれば普通のスタート）
+    const resuming=isPaused();          // isPlaying を立てる前に判定する
     isPlaying=true;
-    // 停止中に測定したテンポがあればそこから発車（ステアと同じく、自動復帰ONなら目標へ帰る）
-    const startBPM=measuredBPM;         // scheduler() が先読み分の復帰を進める前の値を表示用に取っておく
-    if(startBPM!=null){ currentBPM=startBPM; holding=!autoReturn; }
-    else { currentBPM=targetBPM; holding=false; }
+    if(measuredBPM!=null){ currentBPM=measuredBPM; holding=!autoReturn; }
+    else if(!resuming){ currentBPM=targetBPM; holding=false; }
     clearMeasure();
     steerTaps=[]; lastBeatT=null; lastBeatIdx=null; barsElapsed=0;
     beatIndex=0; tickInBeat=0; lastTapTime=null;
@@ -204,12 +205,26 @@
     if(timerID){clearTimeout(timerID);timerID=null;}
     for(const p of pending) p.stop();
     pending=[]; visualQueue=[]; lastTapTime=null; steerTaps=[]; lastBeatT=null; lastBeatIdx=null;
-    holding=false;
+    // 一時停止：currentBPM と holding はそのまま残す（スタートで同じテンポから再開）
     clearMeasure();
     clearRing();
     paintTransport();
   }
   function toggle(){ isPlaying?stop():start(); }
+  // 停止中に、テンポがホームから離れたまま止まっている＝一時停止状態
+  function isPaused(){ return !isPlaying && Math.abs(currentBPM-targetBPM)>=0.5; }
+  // ホームに戻して停止（＝従来のストップ）。Space 長押し / X / スタートボタン長押し
+  function resetHome(){
+    holding=false; currentBPM=targetBPM;
+    if(isPlaying) stop(); else { clearMeasure(); paintTransport(); }
+  }
+  // 「開始/停止」を押した瞬間はいつも通りトグルし、押し続けたら HOLD_MS でリセットを乗せる（反応速度を落とさない）
+  let toggleHoldTimer=null;
+  function toggleHoldStart(){
+    if(toggleHoldTimer!=null) return;
+    toggleHoldTimer=setTimeout(()=>{ toggleHoldTimer=null; footFlash(); resetHome(); },HOLD_MS);
+  }
+  function toggleHoldEnd(){ if(toggleHoldTimer!=null){ clearTimeout(toggleHoldTimer); toggleHoldTimer=null; } }
 
   // ホームへ戻る（短押し）：保持中 → 復帰開始 / 復帰中 → 一時停止（今のテンポで保持）
   function returnToggle(){
@@ -365,7 +380,8 @@
   // AirStep 等が何のキーを送るかは設定次第なので、MIDI と同じく「学習」で割り当てられるようにする
   const ACTIONS=[
     {id:'steer', l:'タップテンポ（拍を踏む）',    def:{key:'t',code:'KeyT'}},
-    {id:'toggle',l:'開始 / 停止',                 def:{key:' ',code:'Space'}},
+    {id:'toggle',l:'開始 / 停止（長押しでホームに戻して停止）', def:{key:' ',code:'Space'}},
+    {id:'reset', l:'ホームに戻して停止',          def:{key:'x',code:'KeyX'}},   // 長押しを送れないフットスイッチ用
     {id:'next',  l:'次のセクション / 曲',         def:{key:'n',code:'KeyN'}},
     {id:'prev',  l:'前のセクション / 曲',         def:{key:'p',code:'KeyP'}},
     {id:'home',  l:'ホームへ戻る',                def:{key:'r',code:'KeyR'}},
@@ -380,7 +396,8 @@
   const matchKey=(e,b)=>!!b&&((b.code&&e.code&&e.code===b.code)||(e.key&&e.key.toLowerCase()===b.key));
   function runAction(id){
     if(id==='steer'){footFlash();tap();}
-    else if(id==='toggle'){footFlash();toggle();}
+    else if(id==='toggle'){footFlash();toggle();toggleHoldStart();}   // keyup 側で toggleHoldEnd()
+    else if(id==='reset'){footFlash();resetHome();}
     else if(id==='next'){footFlash();nextSection();}
     else if(id==='prev'){footFlash();prevSection();}
     else if(id==='home'){homePressStart();}              // 解放時に短押し(トグル)/長押し(即復帰)を判定。keyup 側で homePressEnd()
@@ -741,7 +758,7 @@
   function paintTransport(){
     const playing=isPlaying;
     $('#startBtn').classList.toggle('playing',playing);
-    $('#startTxt').textContent=playing?'ストップ':'スタート';
+    $('#startTxt').textContent=playing?'ストップ':(isPaused()?'再開':'スタート');
     $('#startIc').innerHTML=playing
       ? '<svg viewBox="0 0 14 14" width="14" height="14"><rect x="2" y="2" width="3.5" height="10" fill="currentColor"/><rect x="8.5" y="2" width="3.5" height="10" fill="currentColor"/></svg>'
       : '<svg viewBox="0 0 14 14" width="14" height="14"><path d="M3 2 L12 7 L3 12 Z" fill="currentColor"/></svg>';
@@ -763,7 +780,7 @@
   function paintReturnBtn(){
     const away=isPlaying && Math.abs(currentBPM-targetBPM)>=0.05;
     $('#returnBtn').classList.toggle('armed',isPlaying&&holding);
-    $('#returnTxt').textContent = holding ? '復帰開始' : away ? '復帰一時停止' : 'ホームへ戻る';
+    $('#returnTxt').textContent = (isPlaying&&holding) ? '復帰開始' : away ? '復帰一時停止' : 'ホームへ戻る';
   }
 
   // ---- visual loop (beat lights + meter + number color) ----
@@ -807,11 +824,22 @@
       $('#targetLine').classList.remove('hold');
       $('#barCount').textContent='';
       $('#liveMark').style.opacity='0';
+    }else if(isPaused()){
+      // 一時停止：止めたときのテンポを出したまま（スタートで再開）
+      const off=clamp(Math.abs(currentBPM-targetBPM)/18,0,1);
+      $('#bpmNow').innerHTML=Math.round(currentBPM)+'<small> BPM</small>';
+      $('#bpmNow').style.color=mix(HOME,LIVE,off);
+      $('#targetLine').innerHTML='一時停止中 — ホーム <b>'+targetBPM+'</b>（再開でこのテンポから）';
+      $('#targetLine').classList.toggle('hold',holding);
+      $('#startTxt').textContent='再開';
+      $('#barCount').textContent='';
+      $('#liveMark').style.opacity='0';
     }else{
       $('#bpmNow').innerHTML=targetBPM+'<small> BPM</small>';
       $('#bpmNow').style.color='var(--ink)';
       $('#targetLine').innerHTML='&nbsp;';
       $('#targetLine').classList.remove('hold');
+      $('#startTxt').textContent='スタート';
       $('#barCount').textContent='';
       $('#liveMark').style.opacity='0';
     }
@@ -832,7 +860,14 @@
   }
 
   // ---- events ----
-  $('#startBtn').onclick=toggle;
+  // スタートボタン：click でトグル（iOS のオーディオ解錠は touchend/click 側で済ませる）、長押しでホームに戻して停止
+  {
+    const sb=$('#startBtn'); let longFired=false, t=null;
+    sb.addEventListener('pointerdown',e=>{ if(e.button!==0&&e.pointerType==='mouse')return; longFired=false; t=setTimeout(()=>{ t=null; longFired=true; footFlash(); resetHome(); },HOLD_MS); });
+    ['pointerup','pointercancel','pointerleave'].forEach(ev=>sb.addEventListener(ev,()=>{ if(t!=null){clearTimeout(t);t=null;} }));
+    sb.addEventListener('click',()=>{ if(longFired){ longFired=false; return; } toggle(); });   // 長押し後の click は食う
+    sb.addEventListener('contextmenu',e=>e.preventDefault());
+  }
   // 画面ボタンも押下→解放で判定（長押し＝即ホーム）。click は使わない
   {
     const rb=$('#returnBtn');
@@ -899,6 +934,7 @@
   window.addEventListener('keyup',e=>{
     noteKeyEvent(e);
     if(matchKey(e,keymap.home)) homePressEnd();
+    if(matchKey(e,keymap.toggle)) toggleHoldEnd();
     if(ACTIONS.some(a=>matchKey(e,keymap[a.id]))) e.preventDefault();
   },{capture:true});
   $('#keymapReset').onclick=()=>{ ACTIONS.forEach(a=>keymap[a.id]={...a.def}); keyLearn=null; persistPrefs(); renderKeymap(); };
