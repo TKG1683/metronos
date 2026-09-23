@@ -83,7 +83,7 @@
   .startBtn:active,.returnBtn:active{transform:translateY(1px)}
   .startBtn .ic{width:16px;height:16px;display:inline-block}
   .startBtn.playing{background:linear-gradient(180deg,#3a2a16,#2a1f12);border-color:#8a6530;color:#ffd9a0}
-  .returnBtn{border-color:#2f6a5e;color:var(--home)}
+  .returnBtn{border-color:#2f6a5e;color:var(--home);-webkit-touch-callout:none}  /* 長押し判定があるので iOS のコールアウト抑止 */
   .returnBtn .ic{width:18px;height:18px;display:inline-block}
   .returnBtn:disabled{opacity:.35;cursor:default}
   /* 握ったまま(保持中)＝押してほしい状態なので脈打たせる */
