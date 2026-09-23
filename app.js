@@ -14,7 +14,7 @@
   let volume=0.8;
   let soundType='beep';
   let recPct=0.10;           // 1拍ごとに「現在の間隔」を目標との差の何割ぶん戻すか（間隔=秒の空間で補間）
-  let autoReturn=true;       // true: 叩くのをやめたら自動で復帰 / false: 握ったまま保持し「ホームへ戻る」で復帰開始
+  let autoReturn=false;      // true: 叩くのをやめたら自動で復帰 / false: 握ったまま保持し「ホームへ戻る」で復帰開始（初期値。保存済み設定があればそちら）
   let holding=false;         // 保持中（復帰を止めている）。autoReturn=false でタップすると立つ
   let tapSound=false;        // true: 停止中の測定タップでもクリック音を鳴らす（メトロノームは始めない）
   let steerTaps=[];          // ステアのテンポ算出（直近数タップの移動平均）
