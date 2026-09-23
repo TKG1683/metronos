@@ -2,7 +2,7 @@
 // stale-while-revalidate: まずキャッシュを返し、裏で更新を取りに行く。
 // ステージでオフラインでも確実に起動させるのが目的。
 
-const CACHE = 'metronos-v2';
+const CACHE = 'metronos-v3';
 const ASSETS = [
   '.', 'index.html', 'app.css', 'app.js',
   'manifest.webmanifest', 'icon.svg'

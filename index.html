@@ -120,7 +120,8 @@
       <div class="card">
         <h3>音量 <span class="val" id="volVal">80</span></h3>
         <input type="range" id="volSlider" min="0" max="100" value="80">
-        <div class="hint">スタート前にスマホの音量も確認してね。</div>
+        <div class="hint" id="audioState">オーディオ: 未初期化</div>
+        <div class="hint">スタート前に端末の音量と<b>サイレントモード（🔔）</b>も確認してね。iPad で鳴らないときは、画面のスタートボタンを一度タップしてから。</div>
       </div>
     </div>
 
@@ -188,6 +189,17 @@
       </div>
       <div class="hint" id="midiHint">有効化すると、パッドのノートONが画面タップと同じ「叩く＝スタート/ステア」になります。特定パッドだけにしたいときは「ノート指定」で次に叩いたノートを学習。</div>
     </div>
+
+    <!-- foot switch / key bindings -->
+    <div class="card">
+      <h3>フットスイッチ（キー割り当て）<span class="val" style="color:var(--faint);font-size:10px">Bluetooth HID キーボード</span></h3>
+      <div class="keymap" id="keymapList"></div>
+      <div class="row" style="gap:8px;margin-top:10px">
+        <button class="iconbtn" id="keymapReset">初期設定に戻す</button>
+      </div>
+      <div class="hint" id="keyDiag">最後に受け取ったキー: （まだありません — フットスイッチを踏むとここに出ます）</div>
+      <div class="hint">AirStep 等の HID モードで送るキーが分からないときは「変更」→ フットスイッチを踏むと、そのキーが割り当てられます。上の行に何も出ない場合はキー入力自体が届いていません（ペアリング・モードを確認）。</div>
+    </div>
   </div>
 
   <div class="legend">
@@ -196,8 +208,8 @@
   </div>
 
   <div class="help">
-    <kbd>T</kbd> ステア ・ <kbd>Space</kbd> 開始/停止 ・ <kbd>N</kbd> 次 ・ <kbd>P</kbd> 前 ・ <kbd>R</kbd> ホームへ戻る（2度押しで即復帰） ・ <kbd>A</kbd> 自動復帰 ON/OFF ・ <kbd>S</kbd> ステージ表示<br>
-    <span id="useCase">AirStep LiteのHIDキーに必要なものを割り当てれば、足元だけで操作できます。</span>
+    <span id="helpKeys"></span><br>
+    <span id="useCase">キーは「フットスイッチ（キー割り当て）」で変更できます。</span>
   </div>
 
 </div>

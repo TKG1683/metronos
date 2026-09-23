@@ -35,9 +35,34 @@
       noiseBuf=ctx.createBuffer(1,len,ctx.sampleRate);
       const d=noiseBuf.getChannelData(0);
       for(let i=0;i<len;i++) d[i]=Math.random()*2-1;
+      ctx.onstatechange=paintAudioState;
     }
-    if(ctx.state==='suspended') ctx.resume();
+    if(ctx.state!=='running') ctx.resume().catch(()=>{});   // iOS は 'interrupted' にもなる
+    paintAudioState();
   }
+  // オーディオ状態の診断表示（iPad で鳴らないときの切り分け用）
+  function paintAudioState(){
+    const st=ctx?ctx.state:'none', el=$('#audioState'); if(!el)return;
+    el.textContent='オーディオ: '+(st==='none'?'未初期化（スタートかパッドをタップで起動）':st==='running'?'動作中':st==='suspended'?'停止中（画面をタップすると起動）':st==='interrupted'?'中断中（他アプリの音声）':st);
+  }
+
+  // ---- iOS のオーディオ解錠 ----
+  // iOS Safari は pointerdown(=touchstart) を「ユーザー操作」と見なさず、その中で作った AudioContext は起きない。
+  // touchend/click/keydown で確実に resume し、あわせてサイレントモードでも鳴る再生セッションに切り替える。
+  let audioUnlocked=false;
+  const SILENT_WAV='data:audio/wav;base64,UklGRrQBAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YZABAAA'+'gICA'.repeat(133);
+  function unlockAudio(){
+    ensureCtx();
+    if(audioUnlocked) return;
+    try{ if(navigator.audioSession) navigator.audioSession.type='playback'; }catch(e){}   // Safari 17+: サイレントスイッチを無視して鳴らす
+    try{                                                                                  // 旧iOS向け: 無音の<audio>を一度再生して再生セッションへ
+      const a=document.createElement('audio'); a.setAttribute('playsinline',''); a.src=SILENT_WAV; a.volume=0.01;
+      const p=a.play(); if(p&&p.catch) p.catch(()=>{});
+    }catch(e){}
+    audioUnlocked=true;
+  }
+  ['touchend','click','keydown'].forEach(t=>document.addEventListener(t,unlockAudio,{capture:true,passive:true}));
+  document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible'&&ctx&&ctx.state!=='running') ctx.resume().catch(()=>{}); });
 
   // play one click. role: 'strong' | 'accent' | 'beat' | 'sub'  ('mute'は呼び出し側で鳴らさない)
   function click(time, role){
@@ -297,8 +322,50 @@
   })();
   const SL_KEY='metronos_project_v2';
   const PREF_KEY='metronos_prefs_v1';
-  function persistPrefs(){ Store.set(PREF_KEY,{autoReturn}); }
-  function loadPrefs(){ const p=Store.get(PREF_KEY,null); if(p&&p.autoReturn!=null) autoReturn=!!p.autoReturn; }
+  function persistPrefs(){ Store.set(PREF_KEY,{autoReturn,keymap}); }
+  function loadPrefs(){
+    const p=Store.get(PREF_KEY,null); if(!p)return;
+    if(p.autoReturn!=null) autoReturn=!!p.autoReturn;
+    if(p.keymap&&typeof p.keymap==='object') for(const a of ACTIONS){ const b=p.keymap[a.id]; if(b&&typeof b.key==='string') keymap[a.id]={key:b.key,code:b.code||''}; }
+  }
+
+  // ---- key bindings（フットスイッチ = Bluetooth HID キーボード）----
+  // AirStep 等が何のキーを送るかは設定次第なので、MIDI と同じく「学習」で割り当てられるようにする
+  const ACTIONS=[
+    {id:'steer', l:'ステア（拍を踏む）',          def:{key:'t',code:'KeyT'}},
+    {id:'toggle',l:'開始 / 停止',                 def:{key:' ',code:'Space'}},
+    {id:'next',  l:'次のセクション / 曲',         def:{key:'n',code:'KeyN'}},
+    {id:'prev',  l:'前のセクション / 曲',         def:{key:'p',code:'KeyP'}},
+    {id:'home',  l:'ホームへ戻る',                def:{key:'r',code:'KeyR'}},
+    {id:'auto',  l:'自動復帰 ON/OFF',             def:{key:'a',code:'KeyA'}},
+    {id:'stage', l:'ステージ表示',                def:{key:'s',code:'KeyS'}},
+  ];
+  let keymap={}; ACTIONS.forEach(a=>keymap[a.id]={...a.def});
+  let keyLearn=null;          // 学習待ちのアクションid
+  const keyLabel=b=>!b?'—':(b.key===' '?'Space':(b.key.length===1?b.key.toUpperCase():(b.code||b.key)));
+  // code(物理キー)が一致するか、key(文字)が一致すれば採用。iOS/HID で code が空でも動くように両方見る
+  const matchKey=(e,b)=>!!b&&((b.code&&e.code&&e.code===b.code)||(e.key&&e.key.toLowerCase()===b.key));
+  function runAction(id){
+    if(id==='steer'){footFlash();tap();}
+    else if(id==='toggle'){footFlash();toggle();}
+    else if(id==='next'){footFlash();nextSection();}
+    else if(id==='prev'){footFlash();prevSection();}
+    else if(id==='home'){footFlash();returnHome();}      // 保持中→復帰開始、復帰中→即復帰
+    else if(id==='auto'){footFlash();toggleAutoReturn();}
+    else if(id==='stage'){toggleStage();}
+  }
+  function renderKeymap(){
+    const w=$('#keymapList'); if(!w)return; w.innerHTML='';
+    ACTIONS.forEach(a=>{
+      const row=document.createElement('div'); row.className='keyrow';
+      row.innerHTML='<span class="nm">'+a.l+'</span><kbd>'+escapeHtml(keyLabel(keymap[a.id]))+'</kbd>'
+        +'<button class="iconbtn'+(keyLearn===a.id?' pri':'')+'" data-learn="'+a.id+'">'+(keyLearn===a.id?'キーを押して…':'変更')+'</button>';
+      row.querySelector('[data-learn]').onclick=()=>{ keyLearn=(keyLearn===a.id?null:a.id); renderKeymap(); };
+      w.appendChild(row);
+    });
+    const h=$('#helpKeys'); if(h) h.innerHTML=ACTIONS.map(a=>'<kbd>'+escapeHtml(keyLabel(keymap[a.id]))+'</kbd> '+a.l.replace(/（.*）/,'')).join(' ・ ');
+  }
+  function noteKeyEvent(e){ const d=$('#keyDiag'); if(d) d.textContent='最後に受け取ったキー: '+e.type+'  key="'+e.key+'"  code="'+(e.code||'')+'"  keyCode='+e.keyCode+(e.repeat?'  (repeat)':''); }
 
   // ---- setlist / sections ----
   // song = {name, sections:[{name,targetBPM,beatsPerBar,noteValue,subdivision,accents,bars}], soundType, recPct}
@@ -759,19 +826,21 @@
   $('#midiAny').onclick=()=>{ midiNote=null; midiLearnMode=false; updateMidiButtons(); $('#midiHint').textContent='全ノートで反応します。'; };
 
   window.addEventListener('keydown',e=>{
-    if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA')return;
+    noteKeyEvent(e);
+    if(keyLearn){                             // 学習モード：次に押されたキーを割り当て
+      e.preventDefault();
+      if(e.key==='Shift'||e.key==='Control'||e.key==='Alt'||e.key==='Meta')return;
+      keymap[keyLearn]={key:e.key.toLowerCase(),code:e.code||''}; keyLearn=null; persistPrefs(); renderKeymap(); return;
+    }
+    if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA'||e.target.tagName==='SELECT')return;
     if(e.repeat)return;                       // キーリピート無視（踏みっぱなし誤爆防止）
-    const k=e.key.toLowerCase();
-    if(e.code==='Space'){e.preventDefault();footFlash();toggle();}
-    else if(k==='t'){e.preventDefault();footFlash();tap();}
-    else if(k==='n'){e.preventDefault();footFlash();nextSection();}
-    else if(k==='p'){e.preventDefault();footFlash();prevSection();}
-    else if(k==='r'){e.preventDefault();footFlash();returnHome();}   // ホームへ戻る（保持中→復帰開始、復帰中→即復帰）
-    else if(k==='s'){e.preventDefault();toggleStage();}
-    else if(k==='a'){e.preventDefault();footFlash();toggleAutoReturn();}   // 自動復帰 ON/OFF
-  });
-  // Spaceでボタンが再発火しないように
-  window.addEventListener('keyup',e=>{ if(e.code==='Space') e.preventDefault(); });
+    const act=ACTIONS.find(a=>matchKey(e,keymap[a.id]));
+    if(!act)return;
+    e.preventDefault(); runAction(act.id);
+  },{capture:true});
+  // Space等でフォーカス中のボタンが再発火しないように
+  window.addEventListener('keyup',e=>{ noteKeyEvent(e); if(ACTIONS.some(a=>matchKey(e,keymap[a.id]))) e.preventDefault(); },{capture:true});
+  $('#keymapReset').onclick=()=>{ ACTIONS.forEach(a=>keymap[a.id]={...a.def}); keyLearn=null; persistPrefs(); renderKeymap(); };
 
   function footFlash(){ const b=$('#footBadge'); b.classList.add('hit'); setTimeout(()=>b.classList.remove('hit'),120); }
 
@@ -800,6 +869,7 @@
   renderSections();
   $('#secAutoToggle').classList.toggle('on',secAuto);
   updateMidiButtons();
+  renderKeymap();
   setMidiStatus('', midiSupported()?'未接続（タップで有効化）':'Web MIDI非対応');
   paintTransport();
   requestAnimationFrame(frame);
